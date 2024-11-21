@@ -12,12 +12,14 @@ public class Bootstrap : MonoBehaviour
 {
     public TMP_Dropdown dropdown;
     public Button connectButton;
+    public Button refreshButton;
 
     private Server[] serverList;
 
     void Start()
     {
         connectButton.onClick.AddListener(OnConnectButtonClicked);
+        refreshButton.onClick.AddListener(OnRefreshButtonClicked);
 
         var role = MultiplayerRolesManager.ActiveMultiplayerRoleMask;
 
@@ -105,6 +107,12 @@ public class Bootstrap : MonoBehaviour
         {
             Debug.LogError("Invalid server selected.");
         }
+    }
+
+    void OnRefreshButtonClicked()
+    {
+        dropdown.ClearOptions();
+        StartCoroutine(GetServers());
     }
 
     ushort GetPortFromCommandLineArgs()
