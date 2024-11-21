@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Diagnostics;
 using TMPro;
 using Unity.Multiplayer;
 using Unity.Netcode;
@@ -7,6 +8,7 @@ using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
 
 public class Bootstrap : MonoBehaviour
 {
@@ -33,13 +35,14 @@ public class Bootstrap : MonoBehaviour
             Debug.Log($"Server port: {serverPort}");
 
             StartCoroutine(SendServerData(serverPort));
+            
             NetworkManager.Singleton.StartServer();
         }
     }
 
     IEnumerator SendServerData(ushort port)
     {
-        string url = "http://192.168.0.21:3000/addServer";
+        string url = "http://192.168.0.21:3000/servers/add";
         string jsonData = JsonUtility.ToJson(new Server { port = port });
 
         UnityWebRequest request = new UnityWebRequest(url, "POST");
@@ -57,8 +60,20 @@ public class Bootstrap : MonoBehaviour
         else
         {
             Debug.Log("POST Success: " + request.downloadHandler.text);
-            StartCoroutine(GetServers());
         }
+    }
+
+    private void OnApplicationQuit()
+    {
+        StartCoroutine(DeleteServer());
+        Debug.Log("Application Quit");
+    }
+    
+
+    IEnumerator DeleteServer()
+    {
+        UnityWebRequest www = UnityWebRequest.Get("http://192.168.0.21:3000/servers/onDestroy");
+        yield return www.SendWebRequest();
     }
 
     IEnumerator GetServers()
