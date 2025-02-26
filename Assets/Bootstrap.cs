@@ -15,14 +15,17 @@ public class Bootstrap : MonoBehaviour
     public TMP_Dropdown dropdown;
     public Button connectButton;
     public Button refreshButton;
-
+    
+    public GameObject playerPrefab;
+    
     private Server[] serverList;
 
     void Start()
     {
         connectButton.onClick.AddListener(OnConnectButtonClicked);
         refreshButton.onClick.AddListener(OnRefreshButtonClicked);
-
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        
         var role = MultiplayerRolesManager.ActiveMultiplayerRoleMask;
 
         if (role == MultiplayerRoleFlags.Client)
@@ -42,7 +45,7 @@ public class Bootstrap : MonoBehaviour
 
     IEnumerator SendServerData(ushort port)
     {
-        string url = "http://192.168.0.21:3000/servers/add";
+        string url = "http://10.10.233.1:3000/servers/add";
         string jsonData = JsonUtility.ToJson(new Server { port = port });
 
         UnityWebRequest request = new UnityWebRequest(url, "POST");
@@ -68,17 +71,36 @@ public class Bootstrap : MonoBehaviour
         StartCoroutine(DeleteServer());
         Debug.Log("Application Quit");
     }
-    
+
+    private void OnClientConnected(ulong clientId)
+    {
+        // Этот код выполняется только на сервере
+        if (!NetworkManager.Singleton.IsServer)
+            return;
+
+        // Создаем экземпляр prefab
+        GameObject playerInstance = Instantiate(playerPrefab);
+        NetworkObject networkObject = playerInstance.GetComponent<NetworkObject>();
+
+        // Спавним объект как объект игрока для подключившегося клиента
+        networkObject.SpawnAsPlayerObject(clientId);
+    }
+
+    private void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+    }
 
     IEnumerator DeleteServer()
     {
-        UnityWebRequest www = UnityWebRequest.Get("http://192.168.0.21:3000/servers/onDestroy");
+        UnityWebRequest www = UnityWebRequest.Get("http://10.10.233.1:3000/servers/onDestroy");
         yield return www.SendWebRequest();
     }
 
     IEnumerator GetServers()
     {
-        UnityWebRequest www = UnityWebRequest.Get("http://192.168.0.21:3000/servers");
+        UnityWebRequest www = UnityWebRequest.Get("http://10.10.233.1:3000/servers");
         yield return www.SendWebRequest();
 
         if (www.result != UnityWebRequest.Result.Success)
